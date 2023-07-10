@@ -120,12 +120,13 @@ export default function ConnectButton() {
   }, [account, library, recieverAdd, sendAmount]);
 
   function fromWei(
-    web3: { utils: { fromWei: (arg0: any) => any } },
-    val: { toString: () => any }
+    web3: {utils: {fromWei: (arg0: any, unit: any) => any}},
+    val: {toString: () => any},
+    unit: string = "ether"
   ) {
     if (val) {
       val = val.toString();
-      return web3.utils.fromWei(val);
+      return web3.utils.fromWei(val, unit);
     } else {
       return "0";
     }
@@ -153,9 +154,9 @@ export default function ConnectButton() {
       const gasPrice = await web3.eth.getGasPrice();
       setGasFee(gasPrice);
 
-      // const value1 = await ctx.methods.balanceOf(account).call({gasPrice: Number(gasPrice) * 100});
-      // console.log('[baby amount]', value1)
-      // setBabyBalance(value1);
+      const value1 = await ctx.methods.balanceOf(account).call();
+      console.log('[baby amount]', value1)
+      setBabyBalance(Number(fromWei(web3, value1, "gwei")).toFixed(5));
     }
   }, [account, library]);
 
