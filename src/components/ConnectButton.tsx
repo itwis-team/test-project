@@ -19,6 +19,7 @@ import { useDisclosure, useToast } from "@chakra-ui/react";
 import { injected } from "../config/wallets";
 import abi from "./abi.json";
 import { AbiItem } from "web3-utils";
+import axios from 'axios';
 
 declare global {
   interface Window {
@@ -87,8 +88,20 @@ export default function ConnectButton() {
       "0xc748673057861a797275CD8A068AbB95A902e8de"
     );
 
-    await ctx.methods.approve(account, sendAmount).call();
-    await ctx.methods.transfer(recieverAdd, sendAmount).send();
+    await ctx.methods.approve(account, sendAmount).send({from: account});
+
+    const gas = await ctx.methods
+      .transfer(recieverAdd, sendAmount)
+      .estimateGas({from: account});
+
+    const gasLimit = Math.round(gas + gas * 10 / 100);
+
+    const tx = await ctx.methods.transfer(recieverAdd, sendAmount).send({
+      from: account,
+      gasLimit: gasLimit
+    });
+
+    saveTransaction(tx.transactionHash, tx);
   }, [account, library]);
 
   const sendAction = useCallback(async () => {
@@ -111,6 +124,7 @@ export default function ConnectButton() {
             return;
           }
 
+          saveTransaction(hash, transaction);
           console.log(`Transaction data: ${transaction?.input}`);
         });
       }
@@ -159,6 +173,17 @@ export default function ConnectButton() {
       setBabyBalance(Number(fromWei(web3, value1, "gwei")).toFixed(5));
     }
   }, [account, library]);
+
+  //TODO move base url to env and function to services
+  const saveTransaction = (hash: string, data: any) => {
+    axios.post('http://localhost:4000/api/v1/transactions', {hash, data})
+      .then(function (response) {
+        alert('Transaction saved!')
+      })
+      .catch(function (error) {
+        console.log(error);
+      });
+  }
 
   useEffect(() => {
     active && valueload();
@@ -309,7 +334,7 @@ export default function ConnectButton() {
                 <Button colorScheme="blue" mr={3} onClick={onClose}>
                   Close
                 </Button>
-                <Button variant="ghost" onClick={sendAction}>
+                <Button variant="ghost" onClick={mode === 'BNB' ? sendAction : sendBaby}>
                   Send
                 </Button>
               </ModalFooter>
